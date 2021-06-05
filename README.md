@@ -28,3 +28,4 @@ send_file
 - RSA Encryption
 - multiple files support
 - flags and arguments implementation
+- threading and multiclient support
