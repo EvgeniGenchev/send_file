@@ -1,5 +1,6 @@
 import socket
 import os 
+import sys
 import random 
 import base64
 from random import randint
@@ -18,7 +19,13 @@ B               = int("".join([str(randint(0,9)) for _ in range(50)]))
 #   SOCKET CONSTANTS         #                
 ##############################
 IP     		= ""
-PORT   		= 420
+try:
+    PORT   		= sys.argv[1]
+except IndexError:
+    print("Please specify port")
+    print("Usage: sudo python3 server.py 420")
+    exit(0)
+
 ADDR   		= (IP, PORT)
 FORMAT 		= 'utf-8'
 SIZE   		= 1024
@@ -58,6 +65,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         filename, f_size = get_fns(c.recv(SIZE))
         
         print(filename, f_size)
+        
         with open('output/' + filename, 'wb') as f:
             c.send(b"k")
             data = b""
@@ -67,6 +75,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 f_size -= 1
             data = fernet.decrypt(data)
             f.write(data)
+
+
 
         print(os.path.getsize('output/' + filename))
 
