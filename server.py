@@ -3,8 +3,11 @@ import os
 import sys
 import random 
 import base64
+import pyfiglet
+from time import sleep
 from random import randint
 from cryptography.fernet import Fernet 
+from progress.bar import IncrementalBar as Bar
 
 ##############################
 #   ENCRYPTION CONSTANTS     #                
@@ -20,7 +23,7 @@ B               = int("".join([str(randint(0,9)) for _ in range(50)]))
 ##############################
 IP     		= ""
 try:
-    PORT   		= sys.argv[1]
+    PORT   		= int(sys.argv[1])
 except IndexError:
     print("Please specify port")
     print("Usage: sudo python3 server.py 420")
@@ -29,6 +32,29 @@ except IndexError:
 ADDR   		= (IP, PORT)
 FORMAT 		= 'utf-8'
 SIZE   		= 1024
+
+def print_banner():
+    title = pyfiglet.figlet_format("send_file", font='slant')
+    banner_size = len(title.split('\n')[0])
+    
+    bars = '#'*(banner_size + 1)
+    dashes = '-'*(banner_size + 1)
+    
+    author = "Author: Evgeni Genchev"
+    version = "Version: 0.1 alpha"
+    
+    print(dashes)
+    print(title)
+    print(dashes)
+    print()
+    print(author)
+    print(version)
+    print()
+    print('Press Ctrl-C to end the process')
+    print()
+    print(dashes)
+    
+
 
 def auth(s):
     gBn = PRIME ^ B % PUBLIC_KEY
@@ -39,7 +65,6 @@ def auth(s):
     random.seed(key)
 
     key = "".join([chr(randint(33, 126)) for _ in range(32)])
-    print(key)
 
     key = base64.urlsafe_b64encode(key.encode(FORMAT))
 
@@ -52,32 +77,51 @@ def get_fns(msg):
     fn, fs = msg.decode(FORMAT).split(':')
     return fn, int(fs)
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind(ADDR)
-    s.listen(5)
+print_banner()
+try:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(ADDR)
+        s.listen(5)
 
-    while True:
-        c, addr = s.accept()
-        print(f"{addr} connected")
+        while True:
+            c, addr = s.accept()
+            print()
+            print(f"{addr[0]} sending data", end="")
+            for _ in range(3):
+                print('.', end='')
+                sleep(0.5)
+
         
-        fernet = auth(c)
+            fernet = auth(c)
 
-        filename, f_size = get_fns(c.recv(SIZE))
+            filename, f_size = get_fns(c.recv(SIZE))
+
+            filename = filename.split('\\')[-1]
         
-        print(filename, f_size)
+            print("\nReceiving: " + filename)
         
-        with open('output/' + filename, 'wb') as f:
-            c.send(b"k")
-            data = b""
-            while not f_size < 0:
-                if r  := c.recv(SIZE):
-                    data += r
-                f_size -= 1
-            data = fernet.decrypt(data)
-            f.write(data)
+            if not os.path.isdir('output'):
+                os.system('mkdir output')
 
+            with open('output/' + filename, 'wb') as f:
+                c.send(b"k")
+                data = b""
+            
+                with Bar('Downloading', max=f_size) as bar:
+                    while not f_size < 0:
+                        r = c.recv(SIZE)
+                        if r:
+                            data += r 
+                        bar.next()
+                        f_size -= 1
+                
+                    data = fernet.decrypt(data)
+                    f.write(data)
 
+            print(os.path.getsize('output/' + filename), "bytes written.")
+            print()
+except KeyboardInterrupt:
+    exit(0)
 
-        print(os.path.getsize('output/' + filename))
 
         

@@ -1,0 +1,5 @@
+cffi==1.14.5
+cryptography==3.4.7
+progress==1.5
+pycparser==2.20
+pyfiglet==0.8.post1

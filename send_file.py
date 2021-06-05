@@ -6,6 +6,7 @@ import base64
 from time import sleep
 from random import randint
 from cryptography.fernet import Fernet
+from progress.bar import IncrementalBar as Bar
 
 ##############################
 #   ENCRYPTION CONSTANTS     #
@@ -46,7 +47,6 @@ def auth(c):
     random.seed(key)
     
     key = "".join([chr(randint(33, 126)) for _ in range(32)])
-    print(key)
     
     key = base64.urlsafe_b64encode(key.encode(FORMAT))
     
@@ -67,14 +67,16 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as c:
     data = [data[i:i+N] for i in range(0, len(data), N)]
     
     msg = FILENAME + ":" + str(len(data))
-    print(FILESIZE)
 
     c.send(msg.encode(FORMAT))
     
     if c.recv(SIZE).decode(FORMAT) == 'k':
-        print('prashtam')
-        for d in data:
-            c.send(d)
+        with Bar('Sending... ', max=len(data)) as bar:
+            for d in data:
+                c.send(d)
+                bar.next()
+
+        print('File sent.')
 
         
 		
