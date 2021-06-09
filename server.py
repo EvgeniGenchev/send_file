@@ -41,7 +41,7 @@ def print_banner():
     dashes = '-'*(banner_size + 1)
     
     author = "Author: Evgeni Genchev"
-    version = "Version: 0.1 alpha"
+    version = "Version: 0.2 alpha"
     
     print(dashes)
     print(title)

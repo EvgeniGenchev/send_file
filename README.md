@@ -1,6 +1,7 @@
 # send_file
 Simple client-server based TCP file transfer service with Diffie Hellman key exchange implementation and Fernet symetric key encryption.<br>
-![2021-06-05_18-39](https://user-images.githubusercontent.com/59848681/120898917-64172b00-c62d-11eb-972d-17ae9262d879.png)
+![image](https://user-images.githubusercontent.com/59848681/121398010-3398ff00-c955-11eb-93b2-c490d2120c68.png)
+
 <br>
 ## Requirements
 - Python3.x
