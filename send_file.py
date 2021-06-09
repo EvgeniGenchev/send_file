@@ -3,10 +3,23 @@ import sys
 import os
 import random
 import base64 
+import argparse
 from time import sleep
 from random import randint
 from cryptography.fernet import Fernet
 from progress.bar import IncrementalBar as Bar
+
+parser = argparse.ArgumentParser(description="Send files secure")
+parser.add_argument('-p', '--port', metavar='', required=True ,
+        type=int, help='Server port')
+parser.add_argument('-i', '--ip', metavar='', required=True,
+        type=str, help='Server IP')
+parser.add_argument('-f', '--file', metavar='', required=True, 
+        type=str, help='File to send')
+parser.add_argument('-c', '--chunk-size', metavar = '', type=int,
+        help='Size of a request', default=None)
+args = parser.parse_args()
+
 
 ##############################
 #   ENCRYPTION CONSTANTS     #
@@ -21,8 +34,8 @@ A               = int("".join([str(randint(0,9)) for _ in range(50)]))
 #      SOCKET CONSTANTS      #
 ##############################
 
-IP     		= "192.168.2.7"
-PORT   		= 420
+IP     		= args.ip 
+PORT   		= args.port
 ADDR   		= (IP, PORT)
 FORMAT 		= 'utf-8'
 SIZE   		= 1024
@@ -32,10 +45,14 @@ SIZE   		= 1024
 #       FILE CONSTANTS       #
 ##############################
 
-FILEPATH	= sys.argv[1]
+FILEPATH	= args.file
 FILENAME        = FILEPATH.split('/')[-1]
 FILESIZE        = os.path.getsize(FILEPATH)
-N               = 100
+
+if args.chunk_size:
+    N               = args.chunk_size
+else:
+    N = 100
 
 def auth(c):
     gAn = PRIME ^ A % PUBLIC_KEY
