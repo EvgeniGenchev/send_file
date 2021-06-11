@@ -1,13 +1,21 @@
+import argparse
 import socket
 import os 
 import sys
 import random 
 import base64
 import pyfiglet
+import threading
 from time import sleep
 from random import randint
 from cryptography.fernet import Fernet 
 from progress.bar import IncrementalBar as Bar
+
+parser = argparse.ArgumentParser(description="Send files secure")
+parser.add_argument('-c', '--count', type=int, metavar='', required=False, default=0)
+parser.add_argument('-p', '--port', type=int, metavar='', required=True)
+parser.add_argument('-n', '--no-banner', action='store_true')
+args = parser.parse_args()
 
 ##############################
 #   ENCRYPTION CONSTANTS     #                
@@ -23,7 +31,7 @@ B               = int("".join([str(randint(0,9)) for _ in range(50)]))
 ##############################
 IP     		= ""
 try:
-    PORT   		= int(sys.argv[1])
+    PORT   		= int(args.port)
 except IndexError:
     print("Please specify port")
     print("Usage: sudo python3 server.py 420")
@@ -41,7 +49,7 @@ def print_banner():
     dashes = '-'*(banner_size + 1)
     
     author = "Author: Evgeni Genchev"
-    version = "Version: 0.2 alpha"
+    version = "Version: 0.3 alpha"
     
     print(dashes)
     print(title)
@@ -77,49 +85,62 @@ def get_fns(msg):
     fn, fs = msg.decode(FORMAT).split(':')
     return fn, int(fs)
 
-print_banner()
+def handle_client(c, addr):
+    
+    print(f"{addr[0]} sending data", end="")
+    for _ in range(3):
+        print('.', end='')
+        sleep(0.5)
+
+        
+    fernet = auth(c)
+
+    filename, f_size = get_fns(c.recv(SIZE))
+
+    filename = filename.split('\\')[-1]
+        
+    print("\nReceiving: " + filename)
+        
+    if not os.path.isdir('output'):
+        os.system('mkdir output')
+
+    with open('output/' + filename, 'wb') as f:
+        c.send(b"k")
+        data = b""
+            
+        with Bar('Downloading', max=f_size) as bar:
+            while not f_size < 0:
+                r = c.recv(SIZE)
+                if r:
+                    data += r 
+                bar.next()
+                f_size -= 1
+        
+            data = fernet.decrypt(data)
+            f.write(data)
+
+    print(os.path.getsize('output/' + filename), "bytes written.")
+
+def main(s):
+    c, addr = s.accept()
+    print()
+    t = threading.Thread(target=handle_client, args=(c, addr))
+    t.start()
+
+if not args.no_banner:
+    print_banner()
+
 try:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(ADDR)
         s.listen(5)
 
-        while True:
-            c, addr = s.accept()
-            print()
-            print(f"{addr[0]} sending data", end="")
-            for _ in range(3):
-                print('.', end='')
-                sleep(0.5)
-
-        
-            fernet = auth(c)
-
-            filename, f_size = get_fns(c.recv(SIZE))
-
-            filename = filename.split('\\')[-1]
-        
-            print("\nReceiving: " + filename)
-        
-            if not os.path.isdir('output'):
-                os.system('mkdir output')
-
-            with open('output/' + filename, 'wb') as f:
-                c.send(b"k")
-                data = b""
-            
-                with Bar('Downloading', max=f_size) as bar:
-                    while not f_size < 0:
-                        r = c.recv(SIZE)
-                        if r:
-                            data += r 
-                        bar.next()
-                        f_size -= 1
-                
-                    data = fernet.decrypt(data)
-                    f.write(data)
-
-            print(os.path.getsize('output/' + filename), "bytes written.")
-            print()
+        if not args.count:
+            while True:
+                main(s)
+        else:
+            for i in range(args.count):
+                main(s)
 except KeyboardInterrupt:
     exit(0)
 
